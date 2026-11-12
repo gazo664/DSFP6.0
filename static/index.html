@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobTrack - Modern Job Board & Applicant Tracking System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💼</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="brand" onclick="switchRole('candidate'); switchTab('jobs');">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+          <span style="font-weight: 800; letter-spacing: -0.02em;">Job<span style="color: var(--primary-600);">Track</span></span>
+          <span class="brand-badge">Light Blue Edition</span>
+        </div>
+
+        <!-- Role Toggle Switcher -->
+        <div class="role-switch-container" title="Switch between Candidate and Admin views">
+          <button id="role-pill-candidate" class="role-pill-btn active" onclick="switchRole('candidate')">
+            <span>👤</span> Candidate View
+          </button>
+          <button id="role-pill-admin" class="role-pill-btn" onclick="switchRole('admin')">
+            <span>🛡️</span> Admin Portal
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="nav-links" id="nav-links-container"></nav>
+
+      <!-- Auth & Actions -->
+      <div class="auth-actions" id="nav-auth-container"></div>
+    </div>
+  </header>
+
+  <!-- Hero Section (Visible in Candidate Mode) -->
+  <section class="hero-banner" id="hero-section">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        Discover & Track Your Next <span class="highlight">Career Opportunity</span>
+      </h1>
+      <p class="hero-subtitle">
+        Browse open positions across engineering, design, and product. Submit applications in seconds and track your hiring pipeline in real-time.
+      </p>
+
+      <!-- Search & Filters Container -->
+      <div class="search-card">
+        <div class="search-input-group">
+          <div class="search-field">
+            <span class="field-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Search by job title, skill, or keywords...">
+          </div>
+          <select id="filter-department" class="filter-select">
+            <option value="all">All Departments</option>
+          </select>
+          <select id="filter-job-type" class="filter-select">
+            <option value="all">All Job Types</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Contract">Contract</option>
+          </select>
+        </div>
+
+        <!-- Quick filter chips -->
+        <div class="filter-pills">
+          <span style="font-size: 0.78rem; font-weight: 600; color: #64748b; margin-right: 0.25rem;">Popular:</span>
+          <span class="filter-pill" onclick="setQuickFilter('type', 'Remote')">🌐 Remote Only</span>
+          <span class="filter-pill" onclick="setQuickFilter('search', 'Frontend')">💻 Frontend</span>
+          <span class="filter-pill" onclick="setQuickFilter('search', 'Design')">🎨 UI/UX Design</span>
+          <span class="filter-pill" onclick="setQuickFilter('search', 'DevOps')">⚡ DevOps</span>
+          <span class="filter-pill" onclick="resetFilters()">↺ Reset Filters</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout -->
+  <main class="main-content">
+    
+    <!-- ================= CANDIDATE VIEWS ================= -->
+    <div id="candidate-views">
+      <!-- 1. Jobs List Feed -->
+      <div id="view-jobs-list">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h2 style="font-size: 1.4rem; font-weight: 800; color: #0f172a;">Open Career Positions</h2>
+            <p style="font-size: 0.875rem; color: #64748b;">Browse verified job openings and apply with your resume.</p>
+          </div>
+          <div>
+            <span id="jobs-count-badge" class="badge badge-sky" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Loading positions...</span>
+          </div>
+        </div>
+
+        <div class="job-grid" id="jobs-grid-container"></div>
+      </div>
+
+      <!-- 2. My Applications Tracker View -->
+      <div id="view-my-applications" style="display: none; max-width: 900px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">Application Status Tracker</h2>
+            <p style="font-size: 0.9rem; color: #64748b;">Track hiring decisions, schedule updates, and feedback from recruiters.</p>
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('jobs')">← Browse More Jobs</button>
+          </div>
+        </div>
+
+        <div id="my-applications-list"></div>
+      </div>
+    </div>
+
+    <!-- ================= ADMIN VIEWS ================= -->
+    <div id="admin-views" style="display: none;">
+
+      <!-- Admin Top Banner / Quick Controls -->
+      <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--primary-200); padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+            🛡️
+          </div>
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Recruiter & Admin Portal</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Post openings, review resumes, evaluate candidates, and manage hiring workflows.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="openJobModal()">
+            <span>➕</span> Post a Job Opening
+          </button>
+          <button class="btn btn-outline" onclick="exportCandidatesCSV()" title="Export all candidate submissions as CSV">
+            <span>📥</span> Export CSV
+          </button>
+          <button class="btn btn-secondary" onclick="handleResetDemoData()" title="Reset with fresh realistic sample jobs & candidates">
+            <span>↺</span> Reset Demo Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Admin Dashboard -->
+      <div id="admin-tab-dashboard">
+        <!-- KPI Metrics Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-label">Total Jobs</div>
+              <div class="stat-value" id="stat-total-jobs">-</div>
+            </div>
+            <div class="stat-icon">💼</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-label">Active Openings</div>
+              <div class="stat-value" id="stat-open-jobs" style="color: #0284c7;">-</div>
+            </div>
+            <div class="stat-icon">🟢</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-label">Total Candidates</div>
+              <div class="stat-value" id="stat-total-candidates">-</div>
+            </div>
+            <div class="stat-icon">👥</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-label">Interviews / Screening</div>
+              <div class="stat-value" id="stat-interviews" style="color: #4338ca;">-</div>
+            </div>
+            <div class="stat-icon">🗓️</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-label">Hired Candidates</div>
+              <div class="stat-value" id="stat-hired" style="color: #059669;">-</div>
+            </div>
+            <div class="stat-icon">⭐</div>
+          </div>
+        </div>
+
+        <!-- Recent Applications Table -->
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--primary-100); padding: 1.5rem; box-shadow: var(--shadow-sm); margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Recent Candidate Submissions</h3>
+              <p style="font-size: 0.85rem; color: #64748b;">Latest job applicants ready for your screening review.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('admin-pipeline')">View Full Pipeline →</button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.8rem; text-transform: uppercase;">
+                  <th style="padding: 0.75rem 1rem;">Candidate Name</th>
+                  <th style="padding: 0.75rem 1rem;">Email Address</th>
+                  <th style="padding: 0.75rem 1rem;">Job Position</th>
+                  <th style="padding: 0.75rem 1rem;">Status</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-recent-applications-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Manage Job Openings -->
+      <div id="admin-tab-jobs" style="display: none;">
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--primary-100); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Job Postings Directory</h3>
+              <p style="font-size: 0.875rem; color: #64748b;">Edit job details, toggle open/closed status, or publish new positions.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openJobModal()">
+              <span>➕</span> Post a Job Opening
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.8rem; text-transform: uppercase;">
+                  <th style="padding: 0.75rem 1rem;">Position & Salary</th>
+                  <th style="padding: 0.75rem 1rem;">Department</th>
+                  <th style="padding: 0.75rem 1rem;">Location</th>
+                  <th style="padding: 0.75rem 1rem;">Type</th>
+                  <th style="padding: 0.75rem 1rem;">Candidates</th>
+                  <th style="padding: 0.75rem 1rem;">Status</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-jobs-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Candidate Pipeline & Tracker -->
+      <div id="admin-tab-pipeline" style="display: none;">
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--primary-100); padding: 1.5rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Candidate Hiring Pipeline</h3>
+              <p style="font-size: 0.875rem; color: #64748b;">Track applicants stage-by-stage from Applied to Hired.</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <select id="pipeline-filter-job" class="filter-select" onchange="STATE.pipelineFilter.job_id = this.value; renderAdminPipeline();">
+                <option value="all">All Job Openings</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="exportCandidatesCSV()">📥 Export CSV</button>
+            </div>
+          </div>
+
+          <!-- Pipeline Columns Grid -->
+          <div class="pipeline-container" id="admin-pipeline-cards"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Job Details Modal -->
+  <div class="modal-overlay" id="job-details-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Job Details</span>
+        <button class="modal-close-btn" onclick="closeAllModals()">&times;</button>
+      </div>
+      <div class="modal-body" id="job-details-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeAllModals()">Close</button>
+        <button class="btn btn-primary" id="job-details-apply-btn">Apply for Position</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Candidate Apply Modal -->
+  <div class="modal-overlay" id="apply-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="apply-modal-job-title">Apply for Job</span>
+        <button class="modal-close-btn" onclick="closeAllModals()">&times;</button>
+      </div>
+      <form id="apply-job-form" onsubmit="handleApplicationSubmit(event)">
+        <input type="hidden" id="apply-job-id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full Name <span class="required">*</span></label>
+              <input type="text" id="apply-name" class="form-control" placeholder="e.g. Michael Chang" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address <span class="required">*</span></label>
+              <input type="email" id="apply-email" class="form-control" placeholder="e.g. michael@example.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" id="apply-phone" class="form-control" placeholder="+1 (555) 000-0000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Years of Experience</label>
+              <input type="text" id="apply-experience" class="form-control" placeholder="e.g. 4 years">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">LinkedIn Profile URL</label>
+              <input type="url" id="apply-linkedin" class="form-control" placeholder="https://linkedin.com/in/username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Portfolio / GitHub URL</label>
+              <input type="url" id="apply-portfolio" class="form-control" placeholder="https://github.com/username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Top Skills / Technologies (comma-separated)</label>
+            <input type="text" id="apply-skills" class="form-control" placeholder="e.g. React, TypeScript, Node.js, CSS, Figma">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Cover Letter / Note to Hiring Manager</label>
+            <textarea id="apply-cover-letter" class="form-control" placeholder="Explain why you're a strong fit for this opportunity..."></textarea>
+          </div>
+
+          <!-- Resume Attachment Upload -->
+          <div class="form-group">
+            <label class="form-label">Resume / CV Document</label>
+            <input type="file" id="resume-file-input" style="display: none;" accept=".pdf,.docx,.doc,.txt">
+            <div class="file-dropzone" id="resume-dropzone">
+              <div class="dropzone-icon">📁</div>
+              <div class="dropzone-text">Click to choose or drag & drop your resume file</div>
+              <div class="dropzone-sub">Supported formats: PDF, DOCX, TXT (up to 10 MB)</div>
+            </div>
+            <div id="resume-file-preview" style="margin-top: 0.75rem; display: none;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeAllModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Admin Create / Edit Job Modal -->
+  <div class="modal-overlay" id="job-form-modal">
+    <div class="modal-card" style="max-width: 740px;">
+      <div class="modal-header">
+        <span class="modal-title" id="job-form-modal-title">Post a New Job Opening</span>
+        <button class="modal-close-btn" onclick="closeAllModals()">&times;</button>
+      </div>
+      <form id="job-create-edit-form" onsubmit="handleJobFormSubmit(event)">
+        <input type="hidden" id="job-form-id">
+        <div class="modal-body">
+          
+          <!-- Template selector -->
+          <div style="background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary-800);">
+              ⚡ Quick Fill Template:
+            </div>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="applyJobTemplate('frontend')">Frontend Engineer</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="applyJobTemplate('backend')">Backend Engineer</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="applyJobTemplate('designer')">UI/UX Designer</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="applyJobTemplate('devops')">DevOps Specialist</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Job Title <span class="required">*</span></label>
+              <input type="text" id="job-form-title" class="form-control" placeholder="e.g. Senior Frontend Engineer" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Department <span class="required">*</span></label>
+              <input type="text" id="job-form-department" class="form-control" placeholder="e.g. Engineering, Design, Product" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Location <span class="required">*</span></label>
+              <input type="text" id="job-form-location" class="form-control" placeholder="e.g. Remote (US), New York, NY" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Salary Range</label>
+              <input type="text" id="job-form-salary" class="form-control" placeholder="e.g. $120,000 - $150,000">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Job Type</label>
+              <select id="job-form-type" class="form-control">
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Remote">Remote</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Contract">Contract</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Experience Level</label>
+              <select id="job-form-exp" class="form-control">
+                <option value="Entry Level">Entry Level</option>
+                <option value="Mid Level">Mid Level</option>
+                <option value="Senior Level" selected>Senior Level</option>
+                <option value="Lead / Staff">Lead / Staff</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Job Description / Overview <span class="required">*</span></label>
+            <textarea id="job-form-desc" class="form-control" placeholder="Describe the mission, role overview, and team goals..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Requirements & Qualifications</label>
+            <textarea id="job-form-reqs" class="form-control" placeholder="• 4+ years experience with React...&#10;• Experience with REST APIs..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Benefits & Perks</label>
+            <textarea id="job-form-benefits" class="form-control" placeholder="• Health, Dental, Vision insurance...&#10;• $1,500 Home Office stipend..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Publication Status</label>
+            <select id="job-form-status" class="form-control">
+              <option value="open">Open (Accepting Applications)</option>
+              <option value="closed">Closed (Paused / Filled)</option>
+            </select>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeAllModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Publish Opening</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Candidate Review Drawer / Modal -->
+  <div class="modal-overlay" id="candidate-review-modal">
+    <div class="modal-card" style="max-width: 720px;">
+      <div class="modal-header">
+        <span class="modal-title">Candidate Evaluation & Profile</span>
+        <button class="modal-close-btn" onclick="closeAllModals()">&times;</button>
+      </div>
+      <div class="modal-body" id="candidate-review-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeAllModals()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Login / Register Modal -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <span class="modal-title">JobTrack Account</span>
+        <button class="modal-close-btn" onclick="closeAllModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Quick 1-Click Demo Logins -->
+        <div style="background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary-800); text-transform: uppercase; margin-bottom: 0.5rem;">
+            🚀 1-Click Quick Demo Access
+          </div>
+          <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <button class="btn btn-primary btn-sm" onclick="quickDemoLogin('admin')">Log in as Admin</button>
+            <button class="btn btn-secondary btn-sm" onclick="quickDemoLogin('candidate')">Log in as Candidate</button>
+          </div>
+        </div>
+
+        <!-- Login Form -->
+        <form onsubmit="handleLoginSubmit(event)" id="login-form">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="login-email" class="form-control" placeholder="admin@jobtrack.io" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; font-size: 0.85rem; color: #64748b;">
+          Need a candidate account? 
+          <a href="javascript:void(0)" onclick="document.getElementById('login-form').style.display='none'; document.getElementById('reg-form').style.display='block';">Sign up here</a>
+        </div>
+
+        <!-- Registration Form (hidden by default) -->
+        <form onsubmit="handleRegisterSubmit(event)" id="reg-form" style="display: none; margin-top: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="reg-name" class="form-control" placeholder="e.g. Jordan Lee" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="reg-email" class="form-control" placeholder="jordan@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="+1 (555) 123-4567">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Create Password</label>
+            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Create Candidate Account</button>
+          <div style="text-align: center; margin-top: 0.75rem;">
+            <a href="javascript:void(0)" onclick="document.getElementById('reg-form').style.display='none'; document.getElementById('login-form').style.display='block';" style="font-size: 0.85rem;">Back to Sign In</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div style="max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-weight: 700; color: #0f172a;">JobTrack</span>
+        <span>• Light Blue Job Tracking Platform</span>
+      </div>
+      <div>
+        <span style="color: #64748b;">Demo credentials: <strong>admin@jobtrack.io / admin123</strong> | <strong>candidate@example.com / candidate123</strong></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
+
